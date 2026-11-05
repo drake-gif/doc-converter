@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doc Converter</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233b5bdb'/%3E%3Cpath d='M18 12h20l10 10v30H18z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg:#f3f5fb; --card:#ffffff; --soft:#eef1f9; --text:#1a2133; --muted:#667085;
+    --accent:#3b5bdb; --accent-2:#6741d9; --accent-soft:#e7ecff; --border:#dde2ee;
+    --ok:#2f9e44; --err:#e03131; --shadow:0 10px 40px rgba(30,45,90,.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0f1219; --card:#181c26; --soft:#1f2431; --text:#e8ebf3; --muted:#98a2b8;
+      --accent:#7c93ff; --accent-2:#a78bfa; --accent-soft:#252c4a; --border:#2b3244;
+      --shadow:0 10px 40px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0f1219; --card:#181c26; --soft:#1f2431; --text:#e8ebf3; --muted:#98a2b8;
+    --accent:#7c93ff; --accent-2:#a78bfa; --accent-soft:#252c4a; --border:#2b3244;
+    --shadow:0 10px 40px rgba(0,0,0,.4);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+         font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.45;
+         background-image:radial-gradient(circle at 15% 0%, var(--accent-soft), transparent 45%); }
+  .wrap { max-width:620px; margin:0 auto; padding:28px 16px 40px; }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:22px; }
+  .logo { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; color:#fff; font-weight:800;
+          font-size:.8rem; background:linear-gradient(135deg,var(--accent),var(--accent-2)); }
+  header h1 { margin:0; font-size:1.35rem; }
+  header p { margin:0; color:var(--muted); font-size:.85rem; }
+  .spacer { flex:1; }
+  .icon-btn { width:40px; height:40px; border-radius:10px; border:1px solid var(--border); background:var(--card);
+              color:var(--text); cursor:pointer; font-size:1.1rem; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:22px; box-shadow:var(--shadow); }
+
+  .drop { border:2px dashed var(--border); border-radius:14px; padding:34px 16px; text-align:center; cursor:pointer;
+          background:var(--soft); transition:.15s; outline:none; }
+  .drop:hover, .drop:focus-visible, .drop.over { border-color:var(--accent); background:var(--accent-soft); }
+  .drop .big { font-size:2rem; }
+  .drop b { display:block; margin-top:6px; }
+  .drop span { color:var(--muted); font-size:.85rem; }
+
+  .file { display:none; align-items:center; gap:12px; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--soft); }
+  .file.show { display:flex; }
+  .badge { min-width:46px; height:46px; border-radius:10px; display:grid; place-items:center; color:#fff; font-weight:700;
+           font-size:.72rem; background:var(--accent); text-transform:uppercase; padding:0 6px; }
+  .file .info { flex:1; min-width:0; }
+  .file .name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .file .size { color:var(--muted); font-size:.82rem; }
+  .x { border:0; background:transparent; color:var(--muted); font-size:1.2rem; cursor:pointer; padding:6px 10px; border-radius:8px; }
+  .x:hover { background:var(--border); color:var(--text); }
+
+  .section { margin-top:20px; display:none; }
+  .section.show { display:block; }
+  .label { font-size:.8rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { padding:9px 16px; border-radius:999px; border:1px solid var(--border); background:var(--card); color:var(--text);
+          font-weight:600; font-size:.88rem; cursor:pointer; transition:.12s; }
+  .chip:hover { border-color:var(--accent); }
+  .chip.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  .go { margin-top:22px; width:100%; padding:14px; border:0; border-radius:12px; color:#fff; font-size:1rem; font-weight:700;
+        cursor:pointer; background:linear-gradient(135deg,var(--accent),var(--accent-2)); display:flex; justify-content:center; gap:10px; align-items:center; }
+  .go:disabled { opacity:.5; cursor:not-allowed; }
+  .spin { width:16px; height:16px; border:2px solid rgba(255,255,255,.5); border-top-color:#fff; border-radius:50%; animation:r .7s linear infinite; display:none; }
+  .go.busy .spin { display:block; }
+  @keyframes r { to { transform:rotate(360deg); } }
+
+  #msg { margin-top:14px; padding:11px 14px; border-radius:10px; font-size:.9rem; display:none; }
+  #msg.show { display:block; }
+  #msg.ok { background:rgba(47,158,68,.12); color:var(--ok); }
+  #msg.err { background:rgba(224,49,49,.12); color:var(--err); }
+  #msg a { color:inherit; font-weight:700; }
+
+  .history { margin-top:20px; }
+  .history ul { list-style:none; margin:0; padding:0; }
+  .history li { display:flex; justify-content:space-between; gap:10px; padding:10px 14px; border:1px solid var(--border);
+                border-radius:10px; margin-bottom:8px; background:var(--card); font-size:.88rem; }
+  .history li span { color:var(--muted); white-space:nowrap; }
+  .history a { color:var(--accent); font-weight:600; text-decoration:none; }
+  footer { margin-top:22px; text-align:center; color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">PDF</div>
+    <div><h1>Doc Converter</h1><p>Documents, spreadsheets, slides, images and PDFs</p></div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="theme" title="Toggle light/dark" aria-label="Toggle theme">◐</button>
+  </header>
+
+  <div class="card">
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a file">
+      <div class="big">📄</div>
+      <b>Click to choose a file, or drag it here</b>
+      <span>Max 50 MB</span>
+    </div>
+    <input type="file" id="file" hidden>
+
+    <div class="file" id="fileCard">
+      <div class="badge" id="badge">DOC</div>
+      <div class="info"><div class="name" id="fname"></div><div class="size" id="fsize"></div></div>
+      <button class="x" id="remove" title="Remove file" aria-label="Remove file">✕</button>
+    </div>
+
+    <div class="section" id="fmtSec">
+      <div class="label">Convert to</div>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <button class="go" id="go" disabled><span class="spin"></span><span id="goText">Convert &amp; Download</span></button>
+    <div id="msg"></div>
+  </div>
+
+  <div class="history" id="history" style="display:none">
+    <div class="label">This session</div>
+    <ul id="list"></ul>
+  </div>
+
+  <footer>Your files are processed on the server and deleted right after conversion.</footer>
+</div>
+
+<script>
+const TARGETS = {{ targets | tojson }};
+const MAX = 50 * 1024 * 1024;
+const $ = id => document.getElementById(id);
+const drop = $("drop"), input = $("file"), go = $("go"), msg = $("msg");
+let current = null, chosen = null;
+
+// ---- theme ----
+const root = document.documentElement;
+try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+$("theme").onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+};
+
+// ---- helpers ----
+function show(text, kind, html) {
+  msg.className = "show " + kind;
+  html ? (msg.innerHTML = text) : (msg.textContent = text);
+}
+function hideMsg() { msg.className = ""; }
+function fmtSize(b) { return b < 1048576 ? (b / 1024).toFixed(1) + " KB" : (b / 1048576).toFixed(1) + " MB"; }
+
+function reset() {
+  current = chosen = null; input.value = "";
+  drop.style.display = ""; $("fileCard").classList.remove("show");
+  $("fmtSec").classList.remove("show"); go.disabled = true; hideMsg();
+}
+
+function setFile(f) {
+  if (!f) return;
+  hideMsg();
+  const ext = (f.name.split(".").pop() || "").toLowerCase();
+  if (f.size > MAX) return show("That file is larger than 50 MB.", "err");
+  const opts = TARGETS[ext];
+  if (!opts) return show("." + ext + " files are not supported yet.", "err");
+
+  current = f; chosen = null; go.disabled = true;
+  $("badge").textContent = ext; $("fname").textContent = f.name; $("fsize").textContent = fmtSize(f.size);
+  drop.style.display = "none"; $("fileCard").classList.add("show");
+
+  const chips = $("chips"); chips.innerHTML = "";
+  opts.forEach(o => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = o.toUpperCase(); b.type = "button";
+    b.onclick = () => {
+      chosen = o; go.disabled = false; hideMsg();
+      chips.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", c === b));
+    };
+    chips.appendChild(b);
+  });
+  $("fmtSec").classList.add("show");
+}
+
+drop.onclick = () => input.click();
+drop.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } };
+input.onchange = () => setFile(input.files[0]);
+$("remove").onclick = reset;
+["dragenter", "dragover"].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+document.addEventListener("drop", e => setFile(e.dataTransfer.files[0]));
+
+// ---- convert ----
+function triggerDownload(url, name) {
+  const a = document.createElement("a"); a.href = url; a.download = name; a.click();
+}
+
+go.onclick = async () => {
+  if (!current || !chosen) return;
+  const fd = new FormData(); fd.append("file", current); fd.append("target", chosen);
+  go.disabled = true; go.classList.add("busy"); $("goText").textContent = "Converting…"; hideMsg();
+  try {
+    const r = await fetch("/convert", { method: "POST", body: fd });
+    if (!r.ok) throw new Error((await r.json()).error || "Conversion failed");
+    const blob = await r.blob();
+    const cd = r.headers.get("Content-Disposition") || "";
+    const name = decodeURIComponent((cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)/i) || [])[1] || "converted." + chosen);
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, name);
+    show('Done! Your download has started. <a href="' + url + '" download="' + name + '">Download again</a>', "ok", true);
+    addHistory(name, url, blob.size);
+  } catch (e) {
+    show(e instanceof TypeError ? "Can't reach the server. Make sure it is running and try again." : e.message, "err");
+  }
+  go.classList.remove("busy"); $("goText").textContent = "Convert & Download"; go.disabled = false;
+};
+
+function addHistory(name, url, size) {
+  $("history").style.display = "";
+  const li = document.createElement("li");
+  const a = document.createElement("a"); a.href = url; a.download = name; a.textContent = name;
+  const s = document.createElement("span"); s.textContent = fmtSize(size);
+  li.append(a, s); $("list").prepend(li);
+}
+
+// Clean up the old offline service worker from earlier versions (safe to delete later)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+  if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
+}
+</script>
+</body>
+</html>
