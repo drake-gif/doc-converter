@@ -11,7 +11,7 @@ Supported conversions
 | DOC, DOCX, ODT, RTF, TXT, HTML | PDF, DOCX, DOC, ODT, RTF, TXT, HTML, PNG, JPG |
 | XLS, XLSX, ODS, CSV            | PDF, XLSX, XLS, ODS, CSV, HTML, PNG, JPG |
 | PPT, PPTX, ODP                 | PDF, PPTX, PPT, ODP, PNG, JPG |
-| PNG, JPG, WEBP, BMP, GIF, TIFF | PDF and the other image formats |
+| PNG, JPG, WEBP, BMP, GIF, TIFF | PDF and other image formats |
 | PDF                            | DOCX, ODT, RTF, TXT, HTML, XLSX, PNG, JPG |
 ```
 
@@ -21,7 +21,7 @@ Requirements include:
 
 Run locally
 ```bash
-git clone https://github.com/YOUR-USERNAME/doc-converter.git
+git clone https://github.com/drake-gif/doc-converter.git
 cd doc-converter
 python -m venv venv
 venv\Scripts\activate          # Windows (macOS/Linux: source venv/bin/activate)
